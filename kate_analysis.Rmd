@@ -1,0 +1,184 @@
+---
+title: "kate_analysis"
+author: "Kate Colvin"
+date: "2026-04-26"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(gtsummary)
+library(gt)
+
+```
+
+Examine the relationship between potential risk factors and intraoperative blood loss, with particular attention to whether these associations differ across race/ethnicity subgroups.
+- Previous studies have found that age and sex are associated with intraoperative blood loss; be sure to account for them in your analysis.
+
+```{r}
+
+data <- read_csv("ebl.csv") %>% 
+  mutate(sex = factor(sex, levels = c(0, 1),
+                      labels = c("Male", "Female")),
+         race = factor(race, levels = c(0, 1, 2, 3),
+                       labels = c("White", "Black", "Asian", "Hispanic")), 
+         op = factor(op, levels = c(0, 1), 
+                     labels = c("Body/Tail Resection", "Whipple")), 
+         ven_res = factor(ven_res, levels = c(0, 1), 
+                          labels = c("No", "Yes")), 
+         neo_chemo = factor(neo_chemo, levels = c(0, 1), 
+                            labels = c("No", "Yes")),
+         neo_xrt = factor(neo_xrt, levels = c(0, 1), 
+                          labels = c("No", "Yes")), 
+         prot_energy = factor(prot_energy, levels = c(0, 1), 
+                              labels = c("No", "Yes")))
+
+# Adding NAs as "Missing"
+data_unknown <- data %>% 
+  mutate(race = ifelse(is.na(race), "Unknown", as.character(race)), 
+         race = factor(race)) %>% 
+  mutate(race = factor(race, levels = c("White", "Black", "Asian", "Hispanic", "Unknown")))
+
+```
+
+
+
+## Exploratory Data Analysis
+
+```{r}
+
+table1_unknown <- data_unknown %>%
+  select(-c(patid)) %>%
+  tbl_summary(by = race,
+              label = list(age ~ "Age (years)",
+                           sex ~ "Sex", 
+                           liver_test ~ "Bilirubin (mg/dL)",
+                           op ~ "Operation Type",
+                           ebl ~ "Estimated Blood Loss (mL)",
+                           ven_res ~ "Vascular Resection",
+                           neo_chemo ~ "Neoadjuvant Chemotherapy",
+                           neo_xrt ~ "Neoadjuvant Radiation",
+                           les_size ~ "Tumor Size (cm)",
+                           or_time ~ "Operative Time (minutes)", 
+                           prot_energy ~ "Adequate Protein-Energy")) %>% 
+  add_overall() %>%
+  bold_labels() %>% 
+  add_p() %>% 
+  bold_p() %>% 
+  modify_caption("**Table 1**: Summary of Patient Characteristics by Race")
+
+table1_unknown
+
+# table1_gt <- table1 %>% as_gt()
+# gtsave(table1_gt, "results/table1.png")
+
+```
+
+
+```{r}
+
+# Checking distribution of ebl
+
+ggplot(data, aes(x = ebl)) +
+  geom_histogram(bins = 30, fill = "navy") +
+  labs(title = "Distribution of Estimated Blood Loss", x = "EBL (mL)") +
+  theme_minimal()
+
+ggplot(data, aes(sample = ebl)) +
+  stat_qq() +
+  stat_qq_line(color = "red") +
+  labs(
+    title = "QQ Plot of Estimated Blood Loss (EBL)",
+    x = "Theoretical Quantiles",
+    y = "Sample Quantiles") +
+  theme_minimal()
+
+```
+
+```{r}
+
+# EBL by race
+
+# Histogram 
+ggplot(data_unknown, aes(x = race, y = ebl, color = race)) +
+  geom_boxplot() +
+  labs(x = "Race/Ethnicity", y = "EBL (mL)") + 
+  theme_minimal()
+
+# Ridge plot
+data_unknown %>% ggplot(aes(x = ebl, y = race, fill = race)) +
+   ggridges::geom_density_ridges(
+     alpha = 0.85,
+     scale = 1.2,
+     color = "white") +
+   theme_minimal() +
+   labs(x = "EBL (mL)", y = "Race",
+     title = "Distribution of Estimated Blood Loss by Race") +
+   theme(legend.position = "none", 
+         plot.title = element_text(size = 12))
+
+```
+
+
+```{r}
+
+
+
+```
+
+
+
+## Checking Race Missingness
+
+Checking possible mechanisms of race missingness (missing 59 races)
+
+```{r}
+
+data %>%
+  mutate(race_missing = is.na(race)) %>%
+  select(-c(patid, race)) %>%
+  tbl_summary(by = race_missing, 
+              label = list(age ~ "Age (years)",
+                           sex ~ "Sex", 
+                           liver_test ~ "Bilirubin (mg/dL)",
+                           op ~ "Operation Type",
+                           ebl ~ "Estimated Blood Loss (mL)",
+                           ven_res ~ "Vascular Resection",
+                           neo_chemo ~ "Neoadjuvant Chemotherapy",
+                           neo_xrt ~ "Neoadjuvant Radiation",
+                           les_size ~ "Tumor Size (cm)",
+                           or_time ~ "Operative Time (minutes)", 
+                           prot_energy ~ "Adequate Protein-Energy")) %>%
+  modify_caption("**Table X**: Summary of Patient Characteristics by Race Missingness") %>% 
+  add_p()
+
+```
+
+
+
+```{r}
+
+na_model <- glm(is.na(race) ~ age + sex + ebl + op + ven_res +neo_chemo + neo_xrt + les_size + or_time,
+                data = data,
+                family = binomial)
+
+summary(na_model)
+
+# ven_resYes, neo_chemoYes statistically significantly associated with missing race
+
+```
+
+
+## Modeling
+
+```{r}
+
+
+
+```
+
