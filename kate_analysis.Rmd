@@ -258,7 +258,31 @@ model <- lm(ebl ~ age + sex + race + liver_test + op + ven_res +
               neo_chemo + neo_xrt + les_size + or_time + 
               op * race, 
             data = data)
-summary(model)
+# summary(model)
+
+
+model_results <- tbl_regression(
+  model,
+  label = list(age ~ "Age",
+               sex ~ "Sex", 
+               race ~ "Race", 
+               liver_test ~ "Bilirubin (mg/dL)",
+               op ~ "Operation Type", 
+               ven_res ~ "Vascular Resection",
+               neo_chemo ~ "Neoadjuvant Chemotherapy",
+               neo_xrt ~ "Neoadjuvant Radiation",
+               les_size ~ "Tumor Size (cm)",
+               or_time ~ "Operative Time (minutes)"), 
+  conf.int = TRUE,
+  conf.level = 0.95) %>%
+  bold_labels() %>% 
+  bold_p() %>% 
+  modify_caption("**Table X**: Primary Model Results")
+
+model_results
+
+model_results_gt <- model_results %>% as_gt()
+gtsave(model_results_gt, "results/table_model_results.png")
 
 ```
 
