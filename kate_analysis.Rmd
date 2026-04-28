@@ -14,6 +14,7 @@ library(ggplot2)
 library(readr)
 library(gtsummary)
 library(gt)
+library(gridExtra)
 
 ```
 
@@ -70,12 +71,12 @@ table1_unknown <- data_unknown %>%
   bold_labels() %>% 
   add_p() %>% 
   bold_p() %>% 
-  modify_caption("**Table 1**: Summary of Patient Characteristics by Race")
+  modify_caption("**Table 1**: Summary of Patient Characteristics by Race") 
 
 table1_unknown
 
-# table1_gt <- table1 %>% as_gt()
-# gtsave(table1_gt, "results/table1.png")
+table1_gt <- table1 %>% as_gt()
+gtsave(table1_gt, "results/table1.png")
 
 ```
 
@@ -124,16 +125,170 @@ data_unknown %>% ggplot(aes(x = ebl, y = race, fill = race)) +
 
 ```
 
+```{r}
+
+# Checking if there are differences in covariate x ebl distribution by race
+
+# Categorical Variables
+
+p1 <- data_unknown %>% filter(race != "Unknown") %>% 
+  ggplot(aes(x = race, y = ebl, fill = factor(ven_res))) +
+  geom_boxplot() +
+  labs(title = "EBL by Race and Vascular Resection",
+       fill = "Ven. Resection") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 11), 
+        legend.key.size = unit(0.25, "cm"), 
+        legend.title = element_text(size = 9))
+p1
+
+
+p2 <- data_unknown %>% filter(race != "Unknown") %>% 
+  ggplot(aes(x = race, y = ebl, fill = factor(op))) +
+  geom_boxplot() +
+  labs(title = "EBL by Race and Operation Type",
+       fill = "Operation") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 11), 
+        legend.key.size = unit(0.1, "cm"), 
+        legend.title = element_text(size = 9))
+p2
+
+p3 <- data_unknown %>% filter(race != "Unknown") %>% 
+  ggplot(aes(x = race, y = ebl, fill = factor(neo_chemo))) +
+  geom_boxplot() +
+  labs(title = "EBL by Race and Neoadjuvant Chemotherapy",
+       fill = "Chemo") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 11), 
+        legend.key.size = unit(0.25, "cm"), 
+        legend.title = element_text(size = 9))
+p3
+
+p4 <- data_unknown %>% filter(race != "Unknown") %>% 
+  ggplot(aes(x = race, y = ebl, fill = factor(neo_xrt))) +
+  geom_boxplot() +
+  labs(title = "EBL by Race and Neoadjuvant Radiation",
+       fill = "Radiation") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 11), 
+        legend.key.size = unit(0.25, "cm"), 
+        legend.title = element_text(size = 9))
+p4
+
+cat_figs <- grid.arrange(p1, p2, p3, p4, ncol = 2)
+cat_figs
+
+
+ggsave(filename = "results/cat_figs.png", plot = cat_figs, 
+       width = 9, height = 5, dpi = 300)
+
+```
+
 
 ```{r}
 
+# Continuous Variables
 
+p5 <- data_unknown %>% filter(race != "Unknown") %>% 
+  ggplot(aes(x = or_time, y = ebl, fill = race, color = race)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "loess") +
+  facet_wrap(~ race) +
+  labs(title = "EBL vs Operative Time by Race") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 11))
+p5
+
+p6 <- data_unknown %>% filter(race != "Unknown") %>% 
+  ggplot(aes(x = les_size, y = ebl, fill = race, color = race)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "loess") +
+  facet_wrap(~ race) +
+  labs(title = "EBL vs Tumor Size by Race") +
+  theme_minimal() +
+  theme(legend.position = "none", 
+         plot.title = element_text(size = 11))
+p6
+
+p7 <- data_unknown %>% filter(race != "Unknown") %>% 
+  ggplot(aes(x = liver_test, y = ebl, fill = race, color = race)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ race) +
+  labs(title = "EBL vs Bilirubin by Race") +
+  theme_minimal() +
+  theme(legend.position = "none", 
+         plot.title = element_text(size = 11))
+p7
+
+p8 <- data_unknown %>% filter(race != "Unknown") %>% 
+  ggplot(aes(x = age, y = ebl, fill = race, color = race)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ race) +
+  labs(title = "EBL vs Age by Race") +
+  theme_minimal() +
+  theme(legend.position = "none", 
+         plot.title = element_text(size = 11))
+p8
+
+
+cont_figs <- grid.arrange(p8, p5, p6, p7, ncol = 2)
+cont_figs
+
+
+ggsave(filename = "results/cont_figs.png", plot = cont_figs, 
+       width = 9, height = 5, dpi = 300)
+
+```
+
+
+## Primary Modeling, complete case analysis
+
+Which interaction terms to include, based on figures above:
+- Categorical: ven_res (INSIGNIFICANT, DROPPED IT), op
+- Continuous: or_time (steeper slopes?) (INSIGNIFICANT, DROPPED IT), liver_test (SMALL SAMPLES, REMOVED), les_size (ASIAN ONLY SIGNIFICANT, PROBABLY USNTABLE)
+
+For now, just including op x race. 
+
+```{r}
+
+model <- lm(ebl ~ age + sex + race + liver_test + op + ven_res + 
+              neo_chemo + neo_xrt + les_size + or_time + 
+              op * race, 
+            data = data)
+summary(model)
+
+```
+
+```{r}
+
+# Model Diagnostics 
+
+par(mfrow = c(2,2))
+plot(model)
+
+```
+
+
+```{r}
+
+# LRT, checking that the inclusion of the interaction term helped
+
+model_main <- lm(data ~ age + sex + race + liver_test + op + ven_res + 
+                   neo_chemo + neo_xrt + les_size + or_time, 
+                 data = data)
+
+anova(model_main, model)
+
+# Significant!
 
 ```
 
 
 
-## Checking Race Missingness
+## Checking Race Missingness, Sensitivity Analysis
 
 Checking possible mechanisms of race missingness (missing 59 races)
 
@@ -174,11 +329,13 @@ summary(na_model)
 ```
 
 
-## Modeling
-
 ```{r}
+
+library(mice)
+
 
 
 
 ```
+
 
