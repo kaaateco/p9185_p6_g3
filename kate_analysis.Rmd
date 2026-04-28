@@ -15,6 +15,7 @@ library(readr)
 library(gtsummary)
 library(gt)
 library(gridExtra)
+library(broom)
 
 ```
 
@@ -243,6 +244,11 @@ ggsave(filename = "results/cont_figs.png", plot = cont_figs,
 
 ```
 
+- Categorical Variables: 
+  - Bottom row; not enough non-white people to include interaction term
+  - Top left; not enough non-white people, could combine the groups into white vs. non-white (probably won't)
+- Continuous Variables: Slopes are all very similar, or not enough people
+
 
 ## Primary Modeling, complete case analysis
 
@@ -300,9 +306,9 @@ plot(model)
 
 # LRT, checking that the inclusion of the interaction term helped
 
-model_main <- lm(data ~ age + sex + race + liver_test + op + ven_res + 
-                   neo_chemo + neo_xrt + les_size + or_time, 
-                 data = data)
+model_main <- lm(ebl ~ age + sex + race + liver_test + op + ven_res + 
+              neo_chemo + neo_xrt + les_size + or_time, 
+            data = data)
 
 anova(model_main, model)
 
@@ -339,7 +345,6 @@ data %>%
 ```
 
 
-
 ```{r}
 
 na_model <- glm(is.na(race) ~ age + sex + ebl + op + ven_res +neo_chemo + neo_xrt + les_size + or_time,
@@ -357,8 +362,54 @@ summary(na_model)
 
 library(mice)
 
+imputed <- data %>% select(-c(patid)) %>% 
+  mice(m = 20, method = "pmm", seed = 123)
+
+fit_imputed <- with(imputed,
+  lm(ebl ~ age + sex + race + liver_test + op + ven_res +
+       neo_chemo + neo_xrt + les_size + or_time +
+       op * race))
+
+pooled <- pool(fit_imputed)
+summary(pooled)
+
+```
+
+```{r}
+
+# Imputation results 
+
+pooled_tidy <- tidy(pooled, conf.int = TRUE)
+
+pooled_clean <- pooled_tidy %>%
+  select(term, estimate, conf.low, conf.high, p.value)
+
+tbl_mi <- pooled_clean %>%
+  gt() %>%
+  cols_label(
+    term = "Variable",
+    estimate = "Estimate",
+    conf.low = "Lower CI",
+    conf.high = "Upper CI",
+    p.value = "p-value") %>%
+  fmt_number(columns = c(estimate, conf.low, conf.high), decimals = 2) %>%
+  fmt_number(columns = p.value, decimals = 3) %>%
+  tab_header(title = "Model Results (Multiple Imputation)")
+tbl_mi
+
+```
 
 
+```{r}
+
+complete_data <- complete(imputed, "long")
+
+race_dist <- complete_data %>%
+  group_by(.imp, race) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(race) %>%
+  summarise(mean_n = mean(n))
+race_dist
 
 ```
 
