@@ -5,6 +5,9 @@ date: "2026-04-26"
 output: pdf_document
 ---
 
+- Unknown race model (bonus)
+- Update EDA with unknown
+
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
@@ -58,6 +61,9 @@ data_unknown <- data %>%
   mutate(race = ifelse(is.na(race), "Unknown", as.character(race)), 
          race = factor(race)) %>% 
   mutate(race = factor(race, levels = c("White", "Black", "Asian", "Hispanic", "Unknown")))
+
+data <- data %>% mutate(race = factor(race, levels = c(0, 1, 2, 3),
+                        labels = c("White", "Black", "Asian", "Hispanic")))
 
 ```
 
@@ -145,6 +151,20 @@ ebl_dists
 ggsave(filename = "results/ebl_dists.png", plot = ebl_dists, 
        width = 6, height = 5, dpi = 300)
 
+
+# Ridge plot by distinct racial groups
+ebl_ridge_race <- data_unknown %>% ggplot(aes(x = ebl, y = race, fill = race)) +
+   ggridges::geom_density_ridges(
+     alpha = 0.85,
+     scale = 1.2,
+     color = "white") +
+   theme_minimal() +
+   labs(x = "EBL (mL)", y = "Race",
+     title = "Distribution of Estimated Blood Loss by Race") +
+   theme(legend.position = "none", 
+         plot.title = element_text(size = 12))
+ebl_ridge_race
+
 ```
 
 ```{r}
@@ -153,7 +173,7 @@ ggsave(filename = "results/ebl_dists.png", plot = ebl_dists,
 
 # Categorical Variables
 
-p1 <- data_unknown %>% filter(race_bin != "Unknown") %>% 
+p1 <- data_unknown %>% 
   ggplot(aes(x = race_bin, y = ebl, fill = factor(ven_res))) +
   geom_boxplot() +
   labs(title = "EBL by Race and Vascular Res.",
@@ -166,7 +186,7 @@ p1 <- data_unknown %>% filter(race_bin != "Unknown") %>%
 p1
 
 
-p2 <- data_unknown %>% filter(race_bin != "Unknown") %>% 
+p2 <- data_unknown %>% 
   ggplot(aes(x = race_bin, y = ebl, fill = factor(op))) +
   geom_boxplot() +
   labs(title = "EBL by Race and Operation Type",
@@ -178,7 +198,7 @@ p2 <- data_unknown %>% filter(race_bin != "Unknown") %>%
         legend.title = element_text(size = 9))
 p2
 
-p3 <- data_unknown %>% filter(race_bin != "Unknown") %>% 
+p3 <- data_unknown %>% 
   ggplot(aes(x = race_bin, y = ebl, fill = factor(neo_chemo))) +
   geom_boxplot() +
   labs(title = "EBL by Race and Neoadjuvant Chemo.",
@@ -190,7 +210,7 @@ p3 <- data_unknown %>% filter(race_bin != "Unknown") %>%
         legend.title = element_text(size = 9))
 p3
 
-p4 <- data_unknown %>% filter(race_bin != "Unknown") %>% 
+p4 <- data_unknown %>% 
   ggplot(aes(x = race_bin, y = ebl, fill = factor(neo_xrt))) +
   geom_boxplot() +
   labs(title = "EBL by Race and Neoadjuvant Rad.",
@@ -202,7 +222,7 @@ p4 <- data_unknown %>% filter(race_bin != "Unknown") %>%
         legend.title = element_text(size = 9))
 p4
 
-p9 <- data_unknown %>% filter(race_bin != "Unknown") %>% 
+p9 <- data_unknown %>% 
   ggplot(aes(x = race_bin, y = ebl, fill = factor(sex))) +
   geom_boxplot() +
   labs(title = "EBL by Race and Sex",
@@ -219,7 +239,7 @@ cat_figs <- grid.arrange(p1, p2, p9, p3, p4, ncol = 3)
 cat_figs
 
 ggsave(filename = "results/cat_figs.png", plot = cat_figs, 
-       width = 9.5, height = 5, dpi = 300)
+       width = 12, height = 5, dpi = 300)
 
 ```
 
@@ -228,7 +248,7 @@ ggsave(filename = "results/cat_figs.png", plot = cat_figs,
 
 # Continuous Variables
 
-p5 <- data_unknown %>% filter(race_bin != "Unknown") %>% 
+p5 <- data_unknown %>% 
   ggplot(aes(x = or_time, y = ebl, fill = race_bin, color = race_bin)) +
   geom_point(alpha = 0.4) +
   geom_smooth(method = "loess") +
@@ -240,7 +260,7 @@ p5 <- data_unknown %>% filter(race_bin != "Unknown") %>%
   theme(plot.title = element_text(size = 11))
 p5
 
-p6 <- data_unknown %>% filter(race_bin != "Unknown") %>% 
+p6 <- data_unknown %>% 
   ggplot(aes(x = les_size, y = ebl, fill = race_bin, color = race_bin)) +
   geom_point(alpha = 0.4) +
   geom_smooth(method = "loess") +
@@ -252,7 +272,7 @@ p6 <- data_unknown %>% filter(race_bin != "Unknown") %>%
          plot.title = element_text(size = 11))
 p6
 
-p7 <- data_unknown %>% filter(race_bin != "Unknown") %>% 
+p7 <- data_unknown %>% 
   ggplot(aes(x = liver_test, y = ebl, fill = race_bin, color = race_bin)) +
   geom_point() +
   geom_smooth(method = "lm") +
@@ -264,7 +284,7 @@ p7 <- data_unknown %>% filter(race_bin != "Unknown") %>%
          plot.title = element_text(size = 11))
 p7
 
-p8 <- data_unknown %>% filter(race_bin != "Unknown") %>% 
+p8 <- data_unknown %>% 
   ggplot(aes(x = age, y = ebl, fill = race_bin, color = race_bin)) +
   geom_point() +
   geom_smooth(method = "lm") +
@@ -282,7 +302,7 @@ cont_figs
 
 
 ggsave(filename = "results/cont_figs.png", plot = cont_figs, 
-       width = 9, height = 5, dpi = 300)
+       width = 12, height = 5, dpi = 300)
 
 ```
 
@@ -293,6 +313,30 @@ ggsave(filename = "results/cont_figs.png", plot = cont_figs,
 Which interaction terms to include, based on figures above:
 - Categorical: Operation type
 - Continuous: Operative Time
+
+$$
+\text{EBL}_i \sim N(\mu_i, \sigma^2)
+$$
+
+$$
+\begin{aligned}
+\text{EBL}_i =\;& \beta_0 
++ \beta_1 \text{Age}_i 
++ \beta_2 \mathbf{1}(\text{Female}_i)
++ \beta_3 \mathbf{1}(\text{Non-White}_i)
++ \beta_4 \text{Bilirubin}_i 
++ \beta_5 \mathbf{1}(\text{Whipple}_i) 
++ \beta_6 \mathbf{1}(\text{Vascular Resection}_i) \\
+&+ \beta_7 \mathbf{1}(\text{Neoadj. Chemo}_i) 
++ \beta_8 \mathbf{1}(\text{Neoadj. Radiation}_i) 
++ \beta_9 \text{Tumor Size}_i 
++ \beta_{10} \text{Operative Time}_i \\
+&+ \beta_{11} \left[\mathbf{1}(\text{Whipple}_i) \times \mathbf{1}(\text{Non-White}_i)\right] 
++ \beta_{12} \left[\text{Operative Time}_i \times \mathbf{1}(\text{Non-White}_i)\right]
++ \varepsilon_i
+\end{aligned}
+$$
+
 
 ```{r}
 
@@ -397,7 +441,7 @@ gtsave(model_results_noint_gt, "results/table_model_results_noint.png")
 png("results/model_diagnostics.png", width = 1200, height = 800)
 
 par(mfrow = c(2,2))
-plot(model)
+plot(model_main)
 
 dev.off()
 
@@ -433,7 +477,7 @@ data %>%
 
 ```{r}
 
-na_model <- glm(is.na(race) ~ age + sex + ebl + op + ven_res +neo_chemo + neo_xrt + les_size + or_time,
+na_model <- glm(is.na(race) ~ age + sex + liver_test + ebl + op + ven_res + neo_chemo + neo_xrt + les_size + or_time,
                 data = data,
                 family = binomial)
 
@@ -442,6 +486,30 @@ summary(na_model)
 # ven_resYes, neo_chemoYes statistically significantly associated with missing race
 # MAR
 
+na_model_table <- tbl_regression(
+  na_model,
+  label = list(age ~ "Age (years)",
+               sex ~ "Sex", 
+               liver_test ~ "Bilirubin (mg/dL)",
+               ebl ~ "Estimated Blood Loss (mL)", 
+               op ~ "Operation Type", 
+               ven_res ~ "Vascular Resection",
+               neo_chemo ~ "Neoadjuvant Chemotherapy",
+               neo_xrt ~ "Neoadjuvant Radiation",
+               les_size ~ "Tumor Size (cm)",
+               or_time ~ "Operative Time (minutes)"), 
+  conf.int = TRUE,
+  conf.level = 0.95) %>%
+  bold_labels() %>% 
+  bold_p() %>% 
+  modify_caption("**Table 4**: Race Missingness Model Results")
+
+na_model_table
+
+na_model_table_gt <- na_model_table %>% as_gt()
+gtsave(na_model_table_gt, "results/table_na_model.png")
+
+
 ```
 
 
@@ -449,12 +517,20 @@ summary(na_model)
 
 library(mice)
 
-imputed <- data %>% select(-c(patid, race)) %>% 
-  mice(m = 20, method = "pmm", seed = 123)
+data_mice <- data %>% select(-c(patid, race_bin, prot_energy))
 
-fit_imputed <- with(imputed,
+meth <- make.method(data_mice)
+meth["race"] <- "polyreg"
+
+imputed <- data_mice %>% 
+  mice(m = 20, method = meth, seed = 1)
+
+fit_imputed <- with(imputed, {
+  race_bin <- factor(
+    ifelse(race == "White", "White", "Non-White"),
+    levels = c("White", "Non-White"))
   lm(ebl ~ age + sex + race_bin + liver_test + op + ven_res + 
-              neo_chemo + neo_xrt + les_size + or_time))
+       neo_chemo + neo_xrt + les_size + or_time)})
 
 pooled <- pool(fit_imputed)
 summary(pooled)
@@ -509,23 +585,44 @@ tbl_mi <- pooled_clean %>%
           sprintf("%.3f", x)))})
 tbl_mi
 
-tbl_mi_gt <- model_results %>% as_gt()
-gtsave(model_results_gt, "results/table_model_results.png")
+gtsave(tbl_mi, "results/table_mi.png")
 
 ```
 
 
-```{r, eval = FALSE}
+Additional no interaction model; unknown as it's own category
 
-complete_data <- complete(imputed, "long")
+```{r}
 
-race_dist <- complete_data %>%
-  group_by(.imp, race_bin) %>%
-  summarise(n = n(), .groups = "drop") %>%
-  group_by(race_bin) %>%
-  summarise(mean_n = mean(n))
-race_dist
+model_unknown <- lm(ebl ~ age + sex + race_bin + liver_test + op + ven_res + 
+              neo_chemo + neo_xrt + les_size + or_time + age*race_bin, 
+            data = data_unknown)
+summary(model_unknown)
+
+
+model_unknown_results <- tbl_regression(
+  model_unknown,
+  label = list(age ~ "Age",
+               sex ~ "Sex", 
+               race_bin ~ "Race", 
+               liver_test ~ "Bilirubin (mg/dL)",
+               op ~ "Operation Type", 
+               ven_res ~ "Vascular Resection",
+               neo_chemo ~ "Neoadjuvant Chemotherapy",
+               neo_xrt ~ "Neoadjuvant Radiation",
+               les_size ~ "Tumor Size (cm)",
+               or_time ~ "Operative Time (minutes)"), 
+  conf.int = TRUE,
+  conf.level = 0.95) %>%
+  bold_labels() %>% 
+  bold_p() %>% 
+  modify_caption("**Table 6**: Model Results Including Unknown Race Patients")
+
+model_unknown_results 
+
+model_unknown_results_gt <- model_unknown_results %>% as_gt()
+gtsave(model_unknown_results_gt, "results/table_model_results_unknown.png")
+
 
 ```
-
 
