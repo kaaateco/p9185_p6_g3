@@ -1,0 +1,139 @@
+---
+title: "SPRIS Proj 6"
+author: "Wuraola Olawole"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r libraries, message=FALSE}
+
+library(tidyverse)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(readr)
+library(table1)
+library(knitr)
+library(kableExtra)
+
+```
+
+## Import data
+
+```{r, message=FALSE}
+
+################################## Pilot data #####################################
+
+dat  <- read_csv("C:/Users/wuras/Downloads/ebl.csv") %>% 
+  mutate(sex = factor(sex),
+         race = factor(race),
+         group = factor(prot_energy))
+
+
+#summary(dat)
+
+hist(dat$ebl,
+     main ="",
+     xlab ="Estimated intraoperative blood loss")
+
+
+## Among subset data for protein support
+dat2 <- dat %>% filter(is.na(group)==FALSE)
+
+hist(dat2$ebl,
+     main ="Distribution of EBL in protein support subset",
+     xlab ="Estimated intraoperative blood loss")
+
+
+## Pilot model for sample size calculation
+model <- lm(ebl ~ group + age + sex + race, data = dat)
+
+mod_sum <- summary(model)
+
+rse <- mod_sum$sigma          # Residual Standard Error
+r_sq <- mod_sum$r.squared     # Multiple R-Squared
+
+```
+
+## Sample Size Calculation for the Future Observational study
+
+
+The goal is to demonstrate that adequate protein energy support ($\mu_{adq}$) is better at reducing blood loss by average of at least 40mL compared to the  inadequate protein energy support ($\mu_{inadq}$).
+
+**The hypothesis for the study is given as:**
+
+The Null Hypothesis ($H_0$):
+$$H_0: \mu_{inadq} - \mu_{adq} \leq 0$$
+
+The Alternative Hypothesis ($H_a$):
+$$H_a: \mu_{inadq} - \mu_{adq} > 0$$
+
+Where:
+
+- $\mu_{inadq}$: Mean ebl of inadequate protein energy support group
+- $\mu_{adq}$: Mean ebl of adequate protein energy support group
+- $\delta$: MCID 
+ 
+However, we wish to adjust for known confounding factors, Age, Sex, and Race. Therefore, using the pilot model:
+
+ $$Y_{ebl}= \beta_0 + \beta_1 Group + \beta_2 Age + \beta_3 Sex + \beta_4 Race + \epsilon$$,
+ 
+**The hypothesis becomes:**
+ 
+ The Null Hypothesis ($H_0$):
+$$H_0: \beta_1 \geq 0$$
+
+ The Alternative Hypothesis ($H_a$):
+$$H_a: \beta_1 < 0$$
+
+To prove clinical meaningfulness, the upper bound 95% CI must be < -$\delta$ 
+
+
+For the sample size calculation, let
+
+- MCID, \( \delta \) = 40mL
+- type I error rate, \( \alpha \) = 5%
+- power, \( 1-\beta \) = 80%
+- RSE from pilot model, \( \sigma \) = 91.56 
+- R-square from pilot model, \( R^2 \) = 0.088
+- Dropout rate, \( d \) = 20%
+
+The sample size per arm for two-sample comparison is
+
+\[
+n_0 = \frac{2\left(z_{1-\alpha/2} + z_{1-\beta}\right)^2 \sigma^2}{\delta^2 (1-R^2 )}
+\]
+
+Accounting for dropout rate the final n per arm becomes:
+
+\[
+n_{final} = \frac{n_0}{(1 - d )}
+\]
+
+```{r sample_size}
+# Inputs
+alpha <- 0.05   # Bonferroni adjustment
+power <- 0.80
+delta <- 40
+d <- 0.20
+sigma <- 91.56
+r_sq <- 0.088
+
+z_alpha <- qnorm(1 - alpha/2)
+z_beta <- qnorm(power)
+
+n0_per_arm <- (2 * (z_alpha + z_beta)^2 * sigma^2)/ ((1-r_sq^2)*delta^2)
+
+n_final_per_arm <- n0_per_arm/(1-d)
+
+```
+The sample size per arm is
+
+\[
+n_final = `r ceiling(n_final_per_arm)`
+\]
+
+
+
