@@ -86,7 +86,7 @@ $$
 \end{cases}
 $$
 
- $$Y_{ebl}= \beta_0 + \beta_1 Group + \beta_2 Age + \beta_3 Sex + \beta_4 Race + \epsilon$$,
+ $$log(\frac{\pi}{1 - \pi})= \beta_0 + \beta_1 Group + \beta_2 Age + \beta_3 Sex + \beta_4 Race + \epsilon_i$$,
  
 **The hypothesis becomes:**
  
@@ -143,5 +143,6 @@ The sample size per arm is
 n_final = `r ceiling(n_final_per_arm)`
 \]
 
+The proposed study design for the future study is observational study, specifically a prospective cohort study with matching/weighting. 
 
 
