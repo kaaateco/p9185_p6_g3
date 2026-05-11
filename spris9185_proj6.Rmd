@@ -78,6 +78,14 @@ Where:
  
 However, we wish to adjust for known confounding factors, Age, Sex, and Race. Therefore, using the pilot model:
 
+$$
+\Pr(Y_i = y \mid X) =
+\begin{cases}
+\pi_i & \text{if } y = 1 \\
+1 - \pi_i & \text{if } y = 0
+\end{cases}
+$$
+
  $$Y_{ebl}= \beta_0 + \beta_1 Group + \beta_2 Age + \beta_3 Sex + \beta_4 Race + \epsilon$$,
  
 **The hypothesis becomes:**
