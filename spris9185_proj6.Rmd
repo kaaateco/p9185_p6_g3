@@ -78,15 +78,9 @@ Where:
  
 However, we wish to adjust for known confounding factors, Age, Sex, and Race. Therefore, using the pilot model:
 
-$$
-\Pr(Y_i = y \mid X) =
-\begin{cases}
-\pi_i & \text{if } y = 1 \\
-1 - \pi_i & \text{if } y = 0
-\end{cases}
-$$
+$$EBL_i \sim N(\mu, \sigma^2)$$
 
- $$log(\frac{\pi}{1 - \pi})= \beta_0 + \beta_1 Group + \beta_2 Age + \beta_3 Sex + \beta_4 Race + \epsilon_i$$,
+ $$Y_{ebl}= \beta_0 + \beta_1 Group + \beta_2 Age + \beta_3 Sex + \beta_4 Race + \epsilon$$,
  
 **The hypothesis becomes:**
  
@@ -132,7 +126,7 @@ r_sq <- 0.088
 z_alpha <- qnorm(1 - alpha/2)
 z_beta <- qnorm(power)
 
-n0_per_arm <- (2 * (z_alpha + z_beta)^2 * sigma^2)/ ((1-r_sq^2)*delta^2)
+n0_per_arm <- (2 * (z_alpha + z_beta)^2 * sigma^2)/ ((1-r_sq)*delta^2)
 
 n_final_per_arm <- n0_per_arm/(1-d)
 
@@ -143,6 +137,5 @@ The sample size per arm is
 n_final = `r ceiling(n_final_per_arm)`
 \]
 
-The proposed study design for the future study is observational study, specifically a prospective cohort study with matching/weighting. 
 
 
